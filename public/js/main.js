@@ -94,3 +94,11 @@ function spinWheel(numberToLandOn) {
     wheel.style["transform"] = `translate3d(${resetTo}px, 0px, 0px)`;
   }, 6 * 1000);
 }
+
+async function getUser(){
+  const response = await fetch("/api/v1/users/@me")
+
+  const responseData = await response.json()
+
+  console.log(responseData)
+}

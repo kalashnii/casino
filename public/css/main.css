@@ -60,4 +60,35 @@ body {
 }
 
 
+/* Add this CSS to your existing CSS */
+
+.bet-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.bet-button {
+  padding: 10px 20px;
+  font-size: 1.2em;
+  border: none;
+  border-radius: 8px;
+  margin: 0 10px;
+  cursor: pointer;
+}
+
+#bet-red {
+  background: #F95146;
+  color: white;
+}
+
+#bet-black {
+  background: #2D3035;
+  color: white;
+}
+
+#bet-green {
+  background: #00C74D;
+  color: white;
+}
 
