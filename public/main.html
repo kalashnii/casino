@@ -10,12 +10,17 @@
     <title>2D Roulette Wheel</title>
   </head>
   <body>
-    <nav style="position: relative;"> 
+    <nav style="position: relative;" id="navbar"> 
       <ul class="nav-links">
         <li><a href="main.html">Home</a></li>
         <li><a href="login.html">Login</a></li>
         <li><a href="register.html">Register</a></li>
       </ul>
+      <hr>
+      <div class="user-info">
+        <span class="username" id="username">Username</span>
+        <span class="balance" id="balance">$100.00</span>
+      </div>
     </nav>
     
     <div class="roulette-wrapper">
@@ -30,6 +35,16 @@
         Spin Wheel
       </button>
     </div>
+
+    <div class="bet-input">
+      <input id="bet-amount" type="number" placeholder="Enter your bet amount">
+    </div>
+
+    <div class="timer-wrapper">
+      <div id="timer" class="timer">10</div>
+      <div id="timer-bar" class="timer-bar"></div>
+    </div>
+
     <div class="bet-buttons">
       <button class="bet-button" id="bet-red">Bet Red</button>
       <button class="bet-button" id="bet-black">Bet Black</button>

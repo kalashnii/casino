@@ -1,8 +1,9 @@
 import express from 'express'
-import { MongoClient,ObjectId } from 'mongodb'
+import { MongoClient, ObjectId } from 'mongodb'
 import crypto from 'crypto'
 import { promisify } from "util";
 import session from 'express-session';
+import MongoStore from 'connect-mongo'
 const pbkdf2 = promisify(crypto.pbkdf2);
 
 const client = await MongoClient.connect('mongodb://127.0.0.1:27017')
@@ -24,6 +25,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false, httpOnly: true },
+  store: MongoStore.create({ client, dbName: "casino" })
 }))
 
 async function hashPassword(password, salt) {
@@ -85,7 +87,7 @@ app.get("/api/v1/users/@me", async (req, res) => {
   if (!req.session.user) {
     return res.status(401).json({ error: "not logged in", errorCode: 5 })
   }
-  const user = await users.findOne({_id: new ObjectId(req.session.user._id)})
+  const user = await users.findOne({ _id: new ObjectId(req.session.user._id) })
 
   console.log(req.session.user)
 

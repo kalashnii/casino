@@ -92,3 +92,50 @@ body {
   color: white;
 }
 
+.bet-input {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+#bet-amount {
+  padding: 10px;
+  font-size: 1.2em;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 200px;
+}
+
+.timer-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.timer {
+  font-size: 1.5em;
+  color: white;
+}
+
+.timer-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #ccc;
+  border-radius: 5px;
+  margin-top: 5px;
+  position: relative;
+}
+
+.timer-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #00C74D;
+  border-radius: 5px;
+  width: 100%;
+  transition: width 1s linear;
+}

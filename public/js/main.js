@@ -2,8 +2,38 @@
 const CARD_ORDER = [0, 11, 5, 10, 6, 9, 7, 8, 1, 14, 2, 13, 3, 12, 4];
 const NUMBER_OF_ROWS = 29;
 
-addEventListener("load", () => {
+addEventListener("load", async () => {
   createWheelElements();
+  const user = await getUser();
+
+  const elementUsername = document.getElementById("username")
+  elementUsername.textContent = user.username
+  const elementBalance = document.getElementById("balance")
+  elementBalance.textContent = user.balance
+
+  const timerElement = document.getElementById("timer");
+  const timerBarElement = document.getElementById("timer-bar");
+  let remainingTime = 1000;
+  const timerInterval = 10; // 1 second in milliseconds
+
+  function updateTimer() {
+    if (remainingTime > 0) {
+      remainingTime -= 1;
+      timerElement.textContent = (remainingTime / 100).toFixed(0);
+      timerBarElement.style.width = (remainingTime / 1000) * 100 + "%";
+    }
+    else if (remainingTime === 0) {
+      remainingTime = -1
+      const outcomeInput = document.getElementById("outcome-input");
+      const outcome = parseInt(outcomeInput.value) || Math.ceil(Math.random() * CARD_ORDER.length);
+      spinWheel(outcome);
+      setTimeout(() => {
+        remainingTime = 1000
+      }, 6000);
+
+    }
+  }
+  const timer = setInterval(updateTimer, timerInterval);
 
   document.getElementById("spin-button").addEventListener("click", () => {
     const outcomeInput = document.getElementById("outcome-input");
@@ -95,10 +125,16 @@ function spinWheel(numberToLandOn) {
   }, 6 * 1000);
 }
 
-async function getUser(){
+async function getUser() {
   const response = await fetch("/api/v1/users/@me")
-
   const responseData = await response.json()
 
-  console.log(responseData)
+  return responseData
 }
+
+
+
+
+
+
+
