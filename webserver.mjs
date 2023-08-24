@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import { promisify } from "util";
 import session from 'express-session';
 import MongoStore from 'connect-mongo'
+import { read } from 'fs';
 const pbkdf2 = promisify(crypto.pbkdf2);
 
 const client = await MongoClient.connect('mongodb://127.0.0.1:27017')
@@ -55,12 +56,16 @@ app.post('/api/v1/users/register', async (req, res) => {
 
   const hashedPassword = await hashPassword(req.body.password, salt)
 
-  await users.insertOne({
+  const result = await users.insertOne({
     username: req.body.username,
     password: hashedPassword,
     salt: salt,
     balance: 500
   })
+
+  req.session.user = { _id: result.insertedId }
+
+  return res.status(200).json({})
 
 })
 
@@ -97,6 +102,25 @@ app.get("/api/v1/users/@me", async (req, res) => {
 
   return res.status(200).json({ username: user.username, balance: user.balance })
 
+})
+
+app.get("/api/v1/users/logout", async (req, res) => {
+  req.session.destroy(() => {
+    res.status(200).json({})
+  })
+})
+
+app.get("/api/v1/roulette/roll", async (req, res) => {
+  const randomNumber = Math.floor(Math.random() * 16)
+  return res.status(200).json({ numberToLandOn: randomNumber })
+})
+
+const firstTimestamp = new Date().getTime()
+app.get("/api/v1/roulette/currentRoll", async (req, res) => {
+  const newTimestamp = (new Date().getTime() - firstTimestamp)
+  const remainingTime = 16000 - (newTimestamp % 16000)
+
+  return res.status(200).json({ remainingTime: remainingTime })
 })
 
 

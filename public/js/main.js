@@ -6,15 +6,42 @@ addEventListener("load", async () => {
   createWheelElements();
   const user = await getUser();
 
-  const elementUsername = document.getElementById("username")
-  elementUsername.textContent = user.username
-  const elementBalance = document.getElementById("balance")
-  elementBalance.textContent = user.balance
+  if (user) {
+    document.getElementById("navLogin").remove()
+    document.getElementById("navRegister").remove()
+
+    const navbar = document.getElementById("navbar")
+    const newListItem = document.createElement("li")
+    newListItem.innerHTML = "<a id='logout' href='Main.html'>Logout</a>"
+    navbar.querySelector(".nav-links").appendChild(newListItem)
+
+    const logout = document.getElementById('logout')
+    logout.addEventListener('click', async (event) => {
+      event.preventDefault()
+      const response = await fetch("/api/v1/users/logout")
+      window.location = "/main.html"
+    })
+
+    document.getElementById("username").textContent = user.username
+    document.getElementById("balance").textContent = user.balance
+  }
+
+  if (!user) {
+    document.getElementById("userInfo").style.display = "none"
+    document.getElementById("userInfoSplitter").style.display = "none"
+  }
+
+
 
   const timerElement = document.getElementById("timer");
   const timerBarElement = document.getElementById("timer-bar");
-  let remainingTime = 1000;
+  // let remainingTime = 1000
   const timerInterval = 10; // 1 second in milliseconds
+
+  let remainingTime = await getRemainingTime()
+  remainingTime = Math.ceil(remainingTime / 10)
+
+  console.log(remainingTime)
 
   function updateTimer() {
     if (remainingTime > 0) {
@@ -26,7 +53,7 @@ addEventListener("load", async () => {
       remainingTime = -1
       const outcomeInput = document.getElementById("outcome-input");
       const outcome = parseInt(outcomeInput.value) || Math.ceil(Math.random() * CARD_ORDER.length);
-      spinWheel(outcome);
+      spinWheelRemote();
       setTimeout(() => {
         remainingTime = 1000
       }, 6000);
@@ -82,6 +109,15 @@ function createWheelElements() {
   }
 }
 
+async function spinWheelRemote() {
+
+  const response = await fetch("/api/v1/roulette/roll")
+  const responseData = await response.json()
+
+  spinWheel(responseData.numberToLandOn)
+}
+
+
 function spinWheel(numberToLandOn) {
   const wheel = document.getElementById("wheel");
   const position = CARD_ORDER.indexOf(numberToLandOn);
@@ -129,7 +165,17 @@ async function getUser() {
   const response = await fetch("/api/v1/users/@me")
   const responseData = await response.json()
 
-  return responseData
+  if (response.ok) {
+    return responseData
+  }
+  return null
+}
+
+async function getRemainingTime() {
+  const response = await fetch("/api/v1/roulette/currentRoll")
+  const responseData = await response.json()
+  return responseData.remainingTime
+
 }
 
 

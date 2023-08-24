@@ -6,6 +6,7 @@ addEventListener("load", () => {
         const data = {};
         new FormData(event.target).forEach((value, key) => data[key] = value);
         login(data);
+        window.location = "/main.html"
     })
 })
 

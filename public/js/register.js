@@ -6,6 +6,7 @@ addEventListener("load", () => {
         const data = {};
         new FormData(event.target).forEach((value, key) => data[key] = value);
         register(data);
+        window.location = "/main.html"
     })
 })
 async function register(data) {
@@ -20,7 +21,7 @@ async function register(data) {
     const responseData = await response.json()
     console.log(responseData)
 
-    if (responseData.ok) {
+    if (response.ok) {
         return
     }
 
