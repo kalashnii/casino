@@ -4,20 +4,21 @@ import crypto from 'crypto'
 import { promisify } from "util";
 import session from 'express-session';
 import MongoStore from 'connect-mongo'
-import { read } from 'fs';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 const pbkdf2 = promisify(crypto.pbkdf2);
 
 const client = await MongoClient.connect('mongodb://127.0.0.1:27017')
 const db = client.db("casino")
 const users = await db.createCollection("users")
-// await users.insertOne({
-//   username:"dogger",
-//   password:"meow"
-// })
-// console.log(await users.find({username:"dogger"}).toArray())
 
 const app = express()
 const port = 8080
+
+const httpServer = createServer(app)
+const io = new Server(httpServer)
+
+
 
 app.use(express.static('public'))
 app.use(express.json());
@@ -110,21 +111,72 @@ app.get("/api/v1/users/logout", async (req, res) => {
   })
 })
 
-app.get("/api/v1/roulette/roll", async (req, res) => {
-  const randomNumber = Math.floor(Math.random() * 16)
-  return res.status(200).json({ numberToLandOn: randomNumber })
+const redBets = []
+const blackBets = []
+const greenBets = []
+
+app.post("/api/v1/roll/bet", async (req, res) => {
+  const user = await users.findOne({ _id: new ObjectId(req.session.user._id) })
+  if (user.balance < req.body.betAmount) {
+    return res.status(400).json({ error: "You dont have this amount of money" })
+  }
+  users.updateOne({ _id: user._id }, { $inc: { balance: -req.body.betAmount } })
+  const bet = { userID: user._id, betAmount: req.body.betAmount, color: req.body.color }
+
+  if (req.body.color === "red") {
+    redBets.push(bet)
+  }
+  if (req.body.color === "black") {
+    blackBets.push(bet)
+  }
+  if (req.body.color === "green") {
+    greenBets.push(bet)
+  }
+  console.log(req.body)
 })
 
+let randomNumber = 0
+setInterval(async () => {
+  randomNumber = Math.floor(Math.random() * 15)
+  let bets
+  let multiplier
+  if (randomNumber === 0) {
+    bets = greenBets
+    multiplier = 15
+  }
+  if (randomNumber > 0 && randomNumber < 8) {
+    bets = redBets
+    multiplier = 2
+  }
+  if (randomNumber > 7 && randomNumber < 15) {
+    bets = blackBets
+    multiplier = 2
+  }
+  console.log(bets)
+  for (const object of bets) {
+    users.updateOne({ userID: object._id }, { $inc: { balance: object.betAmount * multiplier } })
+  }
+  redBets.length = 0
+  greenBets.length = 0
+  blackBets.length = 0
+
+  io.emit("roll", randomNumber)
+}, 16000)
+
 const firstTimestamp = new Date().getTime()
-app.get("/api/v1/roulette/currentRoll", async (req, res) => {
+function getRemainingTime() {
   const newTimestamp = (new Date().getTime() - firstTimestamp)
   const remainingTime = 16000 - (newTimestamp % 16000)
 
-  return res.status(200).json({ remainingTime: remainingTime })
+  return remainingTime
+}
+
+io.on("connection", socket => {
+  console.log(socket.id)
+  socket.emit("remainingTime", getRemainingTime())
 })
 
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`listening on port ${port}`)
 })
-

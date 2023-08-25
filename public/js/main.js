@@ -1,7 +1,8 @@
 // Make sure the number of cards is odd. The first number will always be in the middle at the start
 const CARD_ORDER = [0, 11, 5, 10, 6, 9, 7, 8, 1, 14, 2, 13, 3, 12, 4];
 const NUMBER_OF_ROWS = 29;
-
+let remainingTime;
+let remainingStartEpoch;
 addEventListener("load", async () => {
   createWheelElements();
   const user = await getUser();
@@ -24,6 +25,51 @@ addEventListener("load", async () => {
 
     document.getElementById("username").textContent = user.username
     document.getElementById("balance").textContent = user.balance
+
+    document.getElementById("bet-red").addEventListener("click", () => {
+      const betAmount = +document.getElementById("bet-amount").value
+      console.log(betAmount)
+      if (betAmount > 0) {
+        const data = { betAmount: betAmount, color: "red" }
+        bet(data)
+      }
+      else{
+        alert("enter a valid amount")
+      }       
+    })
+    document.getElementById("bet-black").addEventListener("click", () => {
+      const betAmount = +document.getElementById("bet-amount").value
+      console.log(betAmount)
+      if (betAmount > 0) {
+        const data = { betAmount: betAmount, color: "black" }
+        bet(data)
+      }
+      else{
+        alert("enter a valid amount")
+      }       
+    })
+    document.getElementById("bet-green").addEventListener("click", () => {
+      const betAmount = +document.getElementById("bet-amount").value
+      console.log(betAmount)
+      if (betAmount > 0) {
+        const data = { betAmount: betAmount, color: "green" }
+        bet(data)
+      }
+      else{
+        alert("enter a valid amount")
+      }       
+    })
+
+    async function bet(data) {
+      const response = await fetch("/api/v1/roll/bet", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "content-type": "application/json" }
+      })
+      const responseData = await response.json()
+    }
+
+
   }
 
   if (!user) {
@@ -35,38 +81,44 @@ addEventListener("load", async () => {
 
   const timerElement = document.getElementById("timer");
   const timerBarElement = document.getElementById("timer-bar");
-  // let remainingTime = 1000
-  const timerInterval = 10; // 1 second in milliseconds
 
-  let remainingTime = await getRemainingTime()
-  remainingTime = Math.ceil(remainingTime / 10)
+  const timerTimeMs = 10 * 1000;
+  const timerDelayMs = 6 * 1000;
+  const totalTimeMs = timerTimeMs + timerDelayMs;
+  const timerIntervalMs = 10;
 
-  console.log(remainingTime)
-
+  let waitingForNext = false;
   function updateTimer() {
-    if (remainingTime > 0) {
-      remainingTime -= 1;
-      timerElement.textContent = (remainingTime / 100).toFixed(0);
-      timerBarElement.style.width = (remainingTime / 1000) * 100 + "%";
+    if (waitingForNext) {
+      return;
     }
-    else if (remainingTime === 0) {
-      remainingTime = -1
-      const outcomeInput = document.getElementById("outcome-input");
-      const outcome = parseInt(outcomeInput.value) || Math.ceil(Math.random() * CARD_ORDER.length);
-      spinWheelRemote();
-      setTimeout(() => {
-        remainingTime = 1000
-      }, 6000);
 
+    const remainingTimeNow = remainingTime - (new Date().getTime() - remainingStartEpoch);
+    if (remainingTimeNow > 0) {
+      timerElement.textContent = (remainingTimeNow / 1000).toFixed(0);
+      timerBarElement.style.width = (remainingTimeNow / Math.max(timerTimeMs, remainingTimeNow)) * 100 + "%";
+    }
+    else if (remainingTimeNow <= 0) {
+      timerElement.textContent = 0;
+      timerBarElement.style.width = "0%";
+
+      waitingForNext = true;
+
+      setTimeout(() => {
+        const now = new Date().getTime();
+        const timeSinceLast = now - (remainingStartEpoch + remainingTime);
+        const next = totalTimeMs - (timeSinceLast % totalTimeMs);
+
+        remainingStartEpoch = now;
+        remainingTime = next;
+        waitingForNext = false;
+      }, timerDelayMs);
     }
   }
-  const timer = setInterval(updateTimer, timerInterval);
 
-  document.getElementById("spin-button").addEventListener("click", () => {
-    const outcomeInput = document.getElementById("outcome-input");
-    const outcome = parseInt(outcomeInput.value) || Math.ceil(Math.random() * CARD_ORDER.length);
-    spinWheel(outcome);
-  });
+  const timer = setInterval(updateTimer, timerIntervalMs);
+
+
 });
 
 function rotate(array, count) {
@@ -109,13 +161,13 @@ function createWheelElements() {
   }
 }
 
-async function spinWheelRemote() {
+// async function spinWheelRemote() {
 
-  const response = await fetch("/api/v1/roulette/roll")
-  const responseData = await response.json()
+//   const response = await fetch("/api/v1/roulette/roll")
+//   const responseData = await response.json()
 
-  spinWheel(responseData.numberToLandOn)
-}
+//   spinWheel(responseData.numberToLandOn)
+// }
 
 
 function spinWheel(numberToLandOn) {
@@ -171,13 +223,30 @@ async function getUser() {
   return null
 }
 
-async function getRemainingTime() {
-  const response = await fetch("/api/v1/roulette/currentRoll")
-  const responseData = await response.json()
-  return responseData.remainingTime
+// async function getRemainingTime() {
+//   const response = await fetch("/api/v1/roulette/currentRoll")
+//   const responseData = await response.json()
+//   return responseData.remainingTime
 
-}
+// }
 
+const socket = io()
+socket.on("connect", () => {
+  console.log(`u are connected: ${socket.id}`)
+})
+
+socket.on("roll", randomNumber => {
+  console.log(randomNumber)
+  spinWheel(randomNumber)
+})
+
+socket.on("remainingTime", timeLeft => {
+  remainingTime = Math.ceil(timeLeft / 10)
+  console.log(remainingTime)
+
+  remainingTime = timeLeft;
+  remainingStartEpoch = new Date().getTime();
+})
 
 
 
