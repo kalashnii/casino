@@ -10,7 +10,7 @@ const pbkdf2 = promisify(crypto.pbkdf2);
 
 const client = await MongoClient.connect('mongodb://127.0.0.1:27017')
 const db = client.db("casino")
-const users = await db.createCollection("users")
+const users = await db.collection("users")
 
 const app = express()
 const port = 8080
@@ -18,17 +18,18 @@ const port = 8080
 const httpServer = createServer(app)
 const io = new Server(httpServer)
 
-
-
-app.use(express.static('public'))
-app.use(express.json());
-app.use(session({
+const sessionMiddleware = session({
   secret: 'your-secret',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: false, httpOnly: true },
   store: MongoStore.create({ client, dbName: "casino" })
-}))
+})
+
+app.use(express.static('public'))
+app.use(express.json());
+app.use(sessionMiddleware)
+io.engine.use(sessionMiddleware)
 
 async function hashPassword(password, salt) {
   const hashedPassword = await pbkdf2(
@@ -114,13 +115,18 @@ app.get("/api/v1/users/logout", async (req, res) => {
 const redBets = []
 const blackBets = []
 const greenBets = []
+let betHistory = [2,3,4,1,2,5,6,12,5,11]
+
 
 app.post("/api/v1/roll/bet", async (req, res) => {
-  const user = await users.findOne({ _id: new ObjectId(req.session.user._id) })
+  let user = await users.findOne({ _id: new ObjectId(req.session.user._id) })
   if (user.balance < req.body.betAmount) {
     return res.status(400).json({ error: "You dont have this amount of money" })
   }
-  users.updateOne({ _id: user._id }, { $inc: { balance: -req.body.betAmount } })
+  user = await users.findOneAndUpdate({ _id: user._id }, { $inc: { balance: -req.body.betAmount } }, { returnDocument: 'after' })
+  user = user.value
+  io.in(user._id.toString()).emit("balance", user.balance)
+  console.log(user._id)
   const bet = { userID: user._id, betAmount: req.body.betAmount, color: req.body.color }
 
   if (req.body.color === "red") {
@@ -132,7 +138,7 @@ app.post("/api/v1/roll/bet", async (req, res) => {
   if (req.body.color === "green") {
     greenBets.push(bet)
   }
-  console.log(req.body)
+  res.status(200).json({})
 })
 
 let randomNumber = 0
@@ -154,11 +160,22 @@ setInterval(async () => {
   }
   console.log(bets)
   for (const object of bets) {
-    users.updateOne({ userID: object._id }, { $inc: { balance: object.betAmount * multiplier } })
+    let user = await users.findOneAndUpdate({ userID: object._id }, { $inc: { balance: object.betAmount * multiplier } }, { returnDocument: 'after' })
+    user = user.value
+    setTimeout(() => {
+      io.in(user._id.toString()).emit("balance", user.balance)
+    }, 6000);
   }
   redBets.length = 0
   greenBets.length = 0
   blackBets.length = 0
+
+  betHistory.push(randomNumber)
+  if (betHistory.length > 100) {
+    betHistory.shift()
+  }
+  
+  console.log(betHistory,"bethistory")
 
   io.emit("roll", randomNumber)
 }, 16000)
@@ -171,11 +188,16 @@ function getRemainingTime() {
   return remainingTime
 }
 
-io.on("connection", socket => {
+
+io.on("connection", async socket => {
   console.log(socket.id)
   socket.emit("remainingTime", getRemainingTime())
+  const user = await users.findOne({ _id: new ObjectId(socket.request.session.user._id) })
+  socket.emit("balance", user.balance)
+  io.emit("betHistory", betHistory.slice(-12))
+  console.log(user._id)
+  socket.join(user._id.toString())
 })
-
 
 httpServer.listen(port, () => {
   console.log(`listening on port ${port}`)

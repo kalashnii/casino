@@ -1,8 +1,14 @@
 // Make sure the number of cards is odd. The first number will always be in the middle at the start
 const CARD_ORDER = [0, 11, 5, 10, 6, 9, 7, 8, 1, 14, 2, 13, 3, 12, 4];
 const NUMBER_OF_ROWS = 29;
+const SPIN_TIME = 6 * 1000
 let remainingTime;
 let remainingStartEpoch;
+let cooldownTime = 10 * 1000;
+const socket = io()
+socket.on("connect", () => {
+  console.log(`u are connected: ${socket.id}`)
+})
 addEventListener("load", async () => {
   createWheelElements();
   const user = await getUser();
@@ -23,41 +29,30 @@ addEventListener("load", async () => {
       window.location = "/main.html"
     })
 
-    document.getElementById("username").textContent = user.username
     document.getElementById("balance").textContent = user.balance
+    document.getElementById("username").textContent = user.username
 
-    document.getElementById("bet-red").addEventListener("click", () => {
+    async function placeBet(color) {
       const betAmount = +document.getElementById("bet-amount").value
       console.log(betAmount)
       if (betAmount > 0) {
-        const data = { betAmount: betAmount, color: "red" }
-        bet(data)
+        const data = { betAmount: betAmount, color: color }
+        await bet(data)
       }
-      else{
+      else {
         alert("enter a valid amount")
-      }       
+      }
+    }
+
+
+    document.getElementById("bet-red").addEventListener("click", async () => {
+      placeBet("red")
     })
-    document.getElementById("bet-black").addEventListener("click", () => {
-      const betAmount = +document.getElementById("bet-amount").value
-      console.log(betAmount)
-      if (betAmount > 0) {
-        const data = { betAmount: betAmount, color: "black" }
-        bet(data)
-      }
-      else{
-        alert("enter a valid amount")
-      }       
+    document.getElementById("bet-black").addEventListener("click", async () => {
+      placeBet("black")
     })
-    document.getElementById("bet-green").addEventListener("click", () => {
-      const betAmount = +document.getElementById("bet-amount").value
-      console.log(betAmount)
-      if (betAmount > 0) {
-        const data = { betAmount: betAmount, color: "green" }
-        bet(data)
-      }
-      else{
-        alert("enter a valid amount")
-      }       
+    document.getElementById("bet-green").addEventListener("click", async () => {
+      placeBet("green")
     })
 
     async function bet(data) {
@@ -82,8 +77,8 @@ addEventListener("load", async () => {
   const timerElement = document.getElementById("timer");
   const timerBarElement = document.getElementById("timer-bar");
 
-  const timerTimeMs = 10 * 1000;
-  const timerDelayMs = 6 * 1000;
+  const timerTimeMs = cooldownTime
+  const timerDelayMs = SPIN_TIME;
   const totalTimeMs = timerTimeMs + timerDelayMs;
   const timerIntervalMs = 10;
 
@@ -141,10 +136,8 @@ function generateWheelRowCards() {
       color = red ? "red" : "black";
       red = !red;
     }
-
     elementText += `<div class="card ${color}">${card}</div>`;
   }
-
   return elementText;
 }
 
@@ -161,16 +154,7 @@ function createWheelElements() {
   }
 }
 
-// async function spinWheelRemote() {
-
-//   const response = await fetch("/api/v1/roulette/roll")
-//   const responseData = await response.json()
-
-//   spinWheel(responseData.numberToLandOn)
-// }
-
-
-function spinWheel(numberToLandOn) {
+async function spinWheel(numberToLandOn, remainingTime) {
   const wheel = document.getElementById("wheel");
   const position = CARD_ORDER.indexOf(numberToLandOn);
 
@@ -179,7 +163,12 @@ function spinWheel(numberToLandOn) {
    * the larger the number is the faster its initial velocity is,
    * this may not be larger than 12 or less than 0
    */
-  const rowsToSpin = 10;
+  const defaultRowsToSpin = 10;
+  const defaultTimeToSpin = SPIN_TIME;
+
+  const percentage = (remainingTime != undefined ? remainingTime : defaultTimeToSpin) / defaultTimeToSpin;
+  const rowsToSpin = Math.round(defaultRowsToSpin * percentage);
+  const timeToSpin = Math.round(defaultTimeToSpin * percentage);
 
   // The HTML width of the card element
   const cardWidth = 75;
@@ -201,16 +190,20 @@ function spinWheel(numberToLandOn) {
   const y = Math.floor(Math.random() * 20) / 100;
 
   wheel.style["transition-timing-function"] = `cubic-bezier(0, ${x}, ${y}, 1)`;
-  wheel.style["transition-duration"] = "6s";
+  wheel.style["transition-duration"] = timeToSpin + "ms";
   wheel.style["transform"] = `translate3d(-${positionToLandOn}px, 0px, 0px)`;
 
-  setTimeout(() => {
-    wheel.style["transition-timing-function"] = "";
-    wheel.style["transition-duration"] = "";
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      wheel.style["transition-timing-function"] = "";
+      wheel.style["transition-duration"] = "";
 
-    const resetTo = -(position * card + positionInCardToLandOn);
-    wheel.style["transform"] = `translate3d(${resetTo}px, 0px, 0px)`;
-  }, 6 * 1000);
+      const resetTo = -(position * card + positionInCardToLandOn);
+      wheel.style["transform"] = `translate3d(${resetTo}px, 0px, 0px)`;
+
+      resolve();
+    }, timeToSpin);
+  })
 }
 
 async function getUser() {
@@ -230,26 +223,84 @@ async function getUser() {
 
 // }
 
-const socket = io()
-socket.on("connect", () => {
-  console.log(`u are connected: ${socket.id}`)
-})
 
-socket.on("roll", randomNumber => {
+
+socket.on("roll", async(randomNumber) => {
   console.log(randomNumber)
-  spinWheel(randomNumber)
+  await spinWheel(randomNumber)
+  
+  const rouletteHistory = document.getElementById('rouletteHistory');
+  addBetHistory(randomNumber)
+  if (rouletteHistory.childElementCount > 12) {
+    rouletteHistory.children[0].remove()
+  }
 })
 
 socket.on("remainingTime", timeLeft => {
-  remainingTime = Math.ceil(timeLeft / 10)
   console.log(remainingTime)
 
   remainingTime = timeLeft;
   remainingStartEpoch = new Date().getTime();
+
+  const lastNumber = 0;
+  if (remainingTime > cooldownTime) {
+    spinWheel(lastNumber, remainingTime - cooldownTime);
+    
+  } else {
+    spinWheel(lastNumber, 0);
+  }
+})
+
+socket.on("balance", balance => {
+  document.getElementById("balance").textContent = balance
+})
+
+function addBetHistory(rollNumber) {
+  const rouletteHistory = document.getElementById('rouletteHistory');
+  const historyItem = document.createElement('div');
+  historyItem.classList.add('history-item');
+  historyItem.textContent = `${rollNumber}`;
+  if (rollNumber == 0) {
+    historyItem.style.backgroundColor = "#00C74D";
+    historyItem.style.paddingLeft = "8px";
+  }
+  if (rollNumber > 0 && rollNumber < 8) {
+    historyItem.style.backgroundColor = "#F95146";
+    historyItem.style.paddingLeft = "8px";
+  }
+  if (rollNumber > 7 && rollNumber < 10) {
+    historyItem.style.backgroundColor = "#2D3035";
+    historyItem.style.paddingLeft = "8px";
+  }
+  if (rollNumber > 9 && rollNumber < 15) {
+    historyItem.style.backgroundColor = "#2D3035";
+    historyItem.style.paddingLeft = "2px";
+  }
+  console.log(rouletteHistory.childElementCount, "jocke")
+
+  rouletteHistory.appendChild(historyItem);
+
+}
+
+socket.on("betHistory", bets => {
+  if (bets.length === 0) {
+    return
+  }
+  for (const bet of bets) {
+    addBetHistory(bet)
+  }
 })
 
 
 
+// addRollButton.addEventListener('click', () => {
+//     const rollNumber = Math.floor(Math.random() * 37); // Assuming 37 possible outcomes in roulette
+//     const historyItem = document.createElement('div');
+//     historyItem.classList.add('history-item');
+//     historyItem.textContent = `${rollNumber}`;
+//     rouletteHistory.appendChild(historyItem);
 
-
+//     // Scroll to the newly added item
+//     rouletteHistory.scrollLeft = rouletteHistory.scrollWidth - rouletteHistory.clientWidth;
+// });
 
