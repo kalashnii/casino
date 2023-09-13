@@ -115,8 +115,21 @@ app.get("/api/v1/users/logout", async (req, res) => {
 const redBets = []
 const blackBets = []
 const greenBets = []
-let betHistory = [2,3,4,1,2,5,6,12,5,11]
+let last100 = [0, 0, 0]
+let betHistory = [1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12]
 
+for (const number of betHistory) {
+  if (number === 0) {
+    last100[0] += 1
+  }
+  if (number > 0 && number < 8) {
+    last100[2] += 1
+  }
+  if (number > 7 && number < 15) {
+    last100[1] += 1
+  }
+}
+console.log(last100)
 
 app.post("/api/v1/roll/bet", async (req, res) => {
   let user = await users.findOne({ _id: new ObjectId(req.session.user._id) })
@@ -149,14 +162,17 @@ setInterval(async () => {
   if (randomNumber === 0) {
     bets = greenBets
     multiplier = 15
+    last100[0] += 1
   }
   if (randomNumber > 0 && randomNumber < 8) {
     bets = redBets
     multiplier = 2
+    last100[2] += 1
   }
   if (randomNumber > 7 && randomNumber < 15) {
     bets = blackBets
     multiplier = 2
+    last100[1] += 1
   }
   console.log(bets)
   for (const object of bets) {
@@ -172,10 +188,25 @@ setInterval(async () => {
 
   betHistory.push(randomNumber)
   if (betHistory.length > 100) {
+      console.log(betHistory[0],"firstelem")
+    if (betHistory[0] === 0) {
+      last100[0] -= 1
+    }
+    if (betHistory[0] > 0 && betHistory[0] < 8) {
+      last100[2] -= 1
+    }
+    if (betHistory[0] > 7 && betHistory[0] < 15) {
+      last100[1] -= 1
+    }
     betHistory.shift()
   }
-  
-  console.log(betHistory,"bethistory")
+
+  console.log(betHistory, "bethistory")
+  console.log(last100, "last100")
+
+  setTimeout(() => {
+    io.emit("last100",last100)
+  }, 6000);
 
   io.emit("roll", randomNumber)
 }, 16000)
@@ -188,13 +219,13 @@ function getRemainingTime() {
   return remainingTime
 }
 
-
 io.on("connection", async socket => {
   console.log(socket.id)
   socket.emit("remainingTime", getRemainingTime())
   const user = await users.findOne({ _id: new ObjectId(socket.request.session.user._id) })
   socket.emit("balance", user.balance)
   io.emit("betHistory", betHistory.slice(-12))
+  io.emit("last100",last100)
   console.log(user._id)
   socket.join(user._id.toString())
 })

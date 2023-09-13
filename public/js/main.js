@@ -72,8 +72,6 @@ addEventListener("load", async () => {
     document.getElementById("userInfoSplitter").style.display = "none"
   }
 
-
-
   const timerElement = document.getElementById("timer");
   const timerBarElement = document.getElementById("timer-bar");
 
@@ -216,19 +214,10 @@ async function getUser() {
   return null
 }
 
-// async function getRemainingTime() {
-//   const response = await fetch("/api/v1/roulette/currentRoll")
-//   const responseData = await response.json()
-//   return responseData.remainingTime
-
-// }
-
-
-
-socket.on("roll", async(randomNumber) => {
+socket.on("roll", async (randomNumber) => {
   console.log(randomNumber)
   await spinWheel(randomNumber)
-  
+
   const rouletteHistory = document.getElementById('rouletteHistory');
   addBetHistory(randomNumber)
   if (rouletteHistory.childElementCount > 12) {
@@ -245,7 +234,7 @@ socket.on("remainingTime", timeLeft => {
   const lastNumber = 0;
   if (remainingTime > cooldownTime) {
     spinWheel(lastNumber, remainingTime - cooldownTime);
-    
+
   } else {
     spinWheel(lastNumber, 0);
   }
@@ -291,7 +280,11 @@ socket.on("betHistory", bets => {
   }
 })
 
-
+socket.on("last100", last100 => {
+  document.getElementById("last-100-green").textContent = `${last100[0]}`
+  document.getElementById("last-100-black").textContent = `${last100[1]}`
+  document.getElementById("last-100-red").textContent = `${last100[2]}`
+})
 
 // addRollButton.addEventListener('click', () => {
 //     const rollNumber = Math.floor(Math.random() * 37); // Assuming 37 possible outcomes in roulette
