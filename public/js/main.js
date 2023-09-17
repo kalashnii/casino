@@ -156,6 +156,8 @@ async function spinWheel(numberToLandOn, remainingTime) {
   const wheel = document.getElementById("wheel");
   const position = CARD_ORDER.indexOf(numberToLandOn);
 
+  
+
   /* 
    * Determines how many rows to go across before stopping,
    * the larger the number is the faster its initial velocity is,
@@ -216,8 +218,10 @@ async function getUser() {
 
 socket.on("roll", async (randomNumber) => {
   console.log(randomNumber)
+  disableButtons(true)
   await spinWheel(randomNumber)
-
+  disableButtons(false)
+  
   const rouletteHistory = document.getElementById('rouletteHistory');
   addBetHistory(randomNumber)
   if (rouletteHistory.childElementCount > 12) {
@@ -226,16 +230,18 @@ socket.on("roll", async (randomNumber) => {
 })
 
 socket.on("remainingTime", timeLeft => {
-  console.log(remainingTime)
+  console.log(remainingTime,"timeleft")
 
   remainingTime = timeLeft;
   remainingStartEpoch = new Date().getTime();
 
   const lastNumber = 0;
   if (remainingTime > cooldownTime) {
+    disableButtons(true)
     spinWheel(lastNumber, remainingTime - cooldownTime);
 
   } else {
+    disableButtons(false)
     spinWheel(lastNumber, 0);
   }
 })
@@ -285,6 +291,64 @@ socket.on("last100", last100 => {
   document.getElementById("last-100-black").textContent = `${last100[1]}`
   document.getElementById("last-100-red").textContent = `${last100[2]}`
 })
+
+
+
+socket.on("currentRedBets", currentBets => {
+  addCurrentBets(currentBets, "red")
+
+})
+socket.on("currentBlackBets", currentBets => {
+  addCurrentBets(currentBets, "black")
+
+})
+socket.on("currentGreenBets", currentBets => {
+  addCurrentBets(currentBets, "green")
+
+})
+
+function disableButtons(boolean){
+  document.getElementById("bet-red").disabled = boolean
+  document.getElementById("bet-black").disabled = boolean
+  document.getElementById("bet-green").disabled = boolean
+}
+
+function addCurrentBets(currentBets, color) {
+  let totalBetAmount = 0
+  let totalBetID
+  let totalAmountID
+  
+  let ul
+  if (color === "red") {
+    ul = document.getElementById("container1Bets")
+    totalAmountID = "tb1"
+    totalBetID = "ta1"
+  }
+  if (color === "black") {
+    ul = document.getElementById("container2Bets")
+    totalAmountID = "tb2"
+    totalBetID = "ta2"
+  }
+  if (color === "green") {
+    ul = document.getElementById("container3Bets")
+    totalAmountID = "tb3"
+    totalBetID = "ta3"
+  }
+
+  while (ul.firstChild) {
+    ul.removeChild(ul.firstChild);
+  }
+
+  for (const currentBet of currentBets) {
+    totalBetAmount += currentBet.betAmount
+    const li = document.createElement("li")
+    li.innerHTML = `<div class="user-container">${currentBet.username} ${currentBet.betAmount}</div>`
+    ul.appendChild(li)
+  }
+  document.getElementById(totalBetID).textContent = totalBetAmount
+  document.getElementById(totalAmountID).textContent = `Total Bets ${currentBets.length}`
+}
+
 
 // addRollButton.addEventListener('click', () => {
 //     const rollNumber = Math.floor(Math.random() * 37); // Assuming 37 possible outcomes in roulette

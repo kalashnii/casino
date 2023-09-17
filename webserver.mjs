@@ -115,6 +115,7 @@ app.get("/api/v1/users/logout", async (req, res) => {
 const redBets = []
 const blackBets = []
 const greenBets = []
+const allCurrentBets = [redBets, blackBets, greenBets]
 let last100 = [0, 0, 0]
 let betHistory = [1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12]
 
@@ -140,19 +141,28 @@ app.post("/api/v1/roll/bet", async (req, res) => {
   user = user.value
   io.in(user._id.toString()).emit("balance", user.balance)
   console.log(user._id)
-  const bet = { userID: user._id, betAmount: req.body.betAmount, color: req.body.color }
+  const bet = { username: user.username, userID: user._id, betAmount: req.body.betAmount, color: req.body.color }
 
   if (req.body.color === "red") {
     redBets.push(bet)
+    redBets.sort((a, b) => b.betAmount - a.betAmount)
+    io.emit("currentRedBets", redBets)
   }
   if (req.body.color === "black") {
     blackBets.push(bet)
+    blackBets.sort((a, b) => b.betAmount - a.betAmount)
+    io.emit("currentBlackBets", blackBets)
   }
   if (req.body.color === "green") {
     greenBets.push(bet)
+    greenBets.sort((a, b) => b.betAmount - a.betAmount)
+    io.emit("currentGreenBets", greenBets)
   }
+  
   res.status(200).json({})
+  console.log(redBets)
 })
+
 
 let randomNumber = 0
 setInterval(async () => {
@@ -178,8 +188,12 @@ setInterval(async () => {
   for (const object of bets) {
     let user = await users.findOneAndUpdate({ userID: object._id }, { $inc: { balance: object.betAmount * multiplier } }, { returnDocument: 'after' })
     user = user.value
+    console.log(user.value, "value error")
     setTimeout(() => {
       io.in(user._id.toString()).emit("balance", user.balance)
+      io.emit("currentRedBets", redBets)
+      io.emit("currentBlackBets", blackBets)
+      io.emit("currentGreenBets", greenBets)
     }, 6000);
   }
   redBets.length = 0
@@ -188,7 +202,7 @@ setInterval(async () => {
 
   betHistory.push(randomNumber)
   if (betHistory.length > 100) {
-      console.log(betHistory[0],"firstelem")
+    console.log(betHistory[0], "firstelem")
     if (betHistory[0] === 0) {
       last100[0] -= 1
     }
@@ -205,7 +219,7 @@ setInterval(async () => {
   console.log(last100, "last100")
 
   setTimeout(() => {
-    io.emit("last100",last100)
+    io.emit("last100", last100)
   }, 6000);
 
   io.emit("roll", randomNumber)
@@ -222,12 +236,21 @@ function getRemainingTime() {
 io.on("connection", async socket => {
   console.log(socket.id)
   socket.emit("remainingTime", getRemainingTime())
-  const user = await users.findOne({ _id: new ObjectId(socket.request.session.user._id) })
-  socket.emit("balance", user.balance)
-  io.emit("betHistory", betHistory.slice(-12))
-  io.emit("last100",last100)
-  console.log(user._id)
-  socket.join(user._id.toString())
+
+  if (socket.request.session.user) {
+    const user = await users.findOne({ _id: new ObjectId(socket.request.session.user._id) })
+    socket.emit("balance", user.balance)
+    console.log(user._id)
+    socket.join(user._id.toString())
+  }
+
+  
+  socket.emit("betHistory", betHistory.slice(-12))
+  socket.emit("last100", last100)
+  socket.emit("currentRedBets", redBets)
+  socket.emit("currentBlackBets", blackBets)
+  socket.emit("currentGreenBets", greenBets)
+
 })
 
 httpServer.listen(port, () => {

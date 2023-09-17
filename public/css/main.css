@@ -59,9 +59,6 @@ body {
   box-sizing: border-box;
 }
 
-
-/* Add this CSS to your existing CSS */
-
 .bet-buttons {
   display: flex;
   justify-content: center;
@@ -77,9 +74,16 @@ body {
   cursor: pointer;
 }
 
+
 #bet-red {
   background: #F95146;
   color: white;
+}
+
+#bet-red:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
 }
 
 #bet-black {
@@ -87,9 +91,21 @@ body {
   color: white;
 }
 
+#bet-black:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
 #bet-green {
   background: #00C74D;
   color: white;
+}
+
+#bet-green:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
 }
 
 .bet-input {
@@ -141,19 +157,21 @@ body {
 }
 
 .container-and-last {
-  display: flex; /* Use flexbox to align divs in the same line */
-
+  display: flex;
+  /* Use flexbox to align divs in the same line */
+  margin-left: 232px;
 }
 
 .scroll-container {
   overflow-x: hidden;
   white-space: nowrap;
-  width: 320px; /* Adjust as needed */
+  width: 320px;
+  /* Adjust as needed */
   margin: 20px auto;
   border: 1px solid #ccc;
   padding: 10px;
-  
-  
+
+
 
 }
 
@@ -177,37 +195,125 @@ body {
   justify-content: space-between;
   gap: 11px;
   padding-left: 23px;
-  
+
 }
+
 h2 {
   font-size: 22px;
   color: #ffffff;
 }
 
 .circle {
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
 }
 
 /* Style for the green circle */
 .green {
-    background-color: green;
+  background-color: green;
 }
 
 /* Style for the black circle */
 .black {
-    background-color: black;
+  background-color: black;
 }
 
 /* Style for the red circle */
 .red {
-    background-color: red;
+  background-color: red;
+}
+
+
+.container-wrapper {
+  display: flex;
+  justify-content: center;
+  padding-left: 180px;
+  padding-right: 180px;
+}
+
+.container {
+  flex: 1;
+  padding: 20px;
+  margin: 10px;
+  text-align: left;
+  border: 2px solid #333;
+  /* Outline around containers */
+  border-radius: 8px;
+}
+
+.container1 {
+  background-color: #ff3333;
+  /* Red */
+  color: #fff;
+  /* White text for better contrast */
+}
+
+.container2 {
+  background-color: #000;
+  /* Black */
+  color: #fff;
+  /* White text for better contrast */
+}
+
+.container3 {
+  background-color: #33cc33;
+  /* Green */
+  color: #fff;
+  /* White text for better contrast */
+}
+
+.container h2 {
+  font-size: 24px;
+  margin: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #333;
+  /* Horizontal line under the heading */
+}
+
+.container p {
+  font-size: 18px;
+  margin: 0;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.user-container {
+  color: #000;
+  background-color: #f2f2f2;
+  /* Background for user entries */
+  padding: 5px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+
+
+li {
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+.total-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.total-amount {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.total-bets {
+  font-size: 18px;
 }
