@@ -156,7 +156,7 @@ async function spinWheel(numberToLandOn, remainingTime) {
   const wheel = document.getElementById("wheel");
   const position = CARD_ORDER.indexOf(numberToLandOn);
 
-  
+
 
   /* 
    * Determines how many rows to go across before stopping,
@@ -221,7 +221,8 @@ socket.on("roll", async (randomNumber) => {
   disableButtons(true)
   await spinWheel(randomNumber)
   disableButtons(false)
-  
+  removeCurrentBets()
+
   const rouletteHistory = document.getElementById('rouletteHistory');
   addBetHistory(randomNumber)
   if (rouletteHistory.childElementCount > 12) {
@@ -230,7 +231,7 @@ socket.on("roll", async (randomNumber) => {
 })
 
 socket.on("remainingTime", timeLeft => {
-  console.log(remainingTime,"timeleft")
+  console.log(remainingTime, "timeleft")
 
   remainingTime = timeLeft;
   remainingStartEpoch = new Date().getTime();
@@ -307,7 +308,7 @@ socket.on("currentGreenBets", currentBets => {
 
 })
 
-function disableButtons(boolean){
+function disableButtons(boolean) {
   document.getElementById("bet-red").disabled = boolean
   document.getElementById("bet-black").disabled = boolean
   document.getElementById("bet-green").disabled = boolean
@@ -317,7 +318,7 @@ function addCurrentBets(currentBets, color) {
   let totalBetAmount = 0
   let totalBetID
   let totalAmountID
-  
+
   let ul
   if (color === "red") {
     ul = document.getElementById("container1Bets")
@@ -342,11 +343,61 @@ function addCurrentBets(currentBets, color) {
   for (const currentBet of currentBets) {
     totalBetAmount += currentBet.betAmount
     const li = document.createElement("li")
-    li.innerHTML = `<div class="user-container">${currentBet.username} ${currentBet.betAmount}</div>`
+    li.innerHTML = `<div class="user-container">${currentBet.username} ${currentBet.betAmount}🟡</div>`
     ul.appendChild(li)
   }
-  document.getElementById(totalBetID).textContent = totalBetAmount
+  document.getElementById(totalBetID).textContent = `${totalBetAmount} 💰`
   document.getElementById(totalAmountID).textContent = `Total Bets ${currentBets.length}`
+}
+
+function removeCurrentBets() {
+  var ul1 = document.getElementById("container1Bets")
+  var ul2 = document.getElementById("container2Bets")
+  var ul3 = document.getElementById("container3Bets")
+  
+  while (ul1.firstChild) {
+    ul1.removeChild(ul1.firstChild);
+  }
+  while (ul2.firstChild) {
+    ul2.removeChild(ul2.firstChild);
+  }
+  while (ul3.firstChild) {
+    ul3.removeChild(ul3.firstChild);
+  }
+
+  document.getElementById("ta1").textContent = `0 💰`
+  document.getElementById("tb1").textContent = `Total Bets 0`
+  document.getElementById("ta2").textContent = `0 💰`
+  document.getElementById("tb2").textContent = `Total Bets 0`
+  document.getElementById("ta3").textContent = `0 💰`
+  document.getElementById("tb3").textContent = `Total Bets 0`
+}
+
+
+
+socket.on("popup", amount => {
+  console.log(amount, "amount won")
+  popup(amount)
+})
+
+
+function popup(amount) {
+  const notification = document.getElementById("notification");
+  document.getElementById("popupText").textContent = `You won ${amount} 🔥🔥🔥🔥🔥`
+
+  // Function to show the popup
+  function showPopup() {
+    notification.style.top = "0";
+    setTimeout(hidePopup, 2000); // Automatically hide after 2 seconds
+  }
+
+  // Function to hide the popup
+  function hidePopup() {
+    notification.style.top = "-80px"; // Move it off-screen again
+  }
+
+  // Call the showPopup function to display the notification
+  showPopup();
 }
 
 
