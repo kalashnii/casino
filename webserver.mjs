@@ -112,23 +112,26 @@ app.get("/api/v1/users/logout", async (req, res) => {
   })
 })
 
+function generateInitialBetHistory() {
+  const history = [];
+  for (let i = 0; i < 100; i++) {
+      history.push(Math.floor(Math.random() * 15));
+  }
+  return history;
+}
 const redBets = []
 const blackBets = []
 const greenBets = []
-const allCurrentBets = [redBets, blackBets, greenBets]
-let last100 = [0, 0, 0]
-let betHistory = [1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12, 1, 7, 3, 0, 10, 6, 8, 5, 11, 4, 2, 9, 14, 12]
+let last100 = {
+  "red": 0,
+  "black": 0,
+  "green": 0
+}
+let betHistory = generateInitialBetHistory()
 
 for (const number of betHistory) {
-  if (number === 0) {
-    last100[0] += 1
-  }
-  if (number > 0 && number < 8) {
-    last100[2] += 1
-  }
-  if (number > 7 && number < 15) {
-    last100[1] += 1
-  }
+  const rollColor = getRollColor(number);
+  last100[rollColor] += 1;
 }
 console.log(last100)
 
@@ -141,52 +144,42 @@ app.post("/api/v1/roll/bet", async (req, res) => {
   user = user.value
   io.in(user._id.toString()).emit("balance", user.balance)
   console.log(user._id)
-  const bet = { username: user.username, userID: user._id, betAmount: req.body.betAmount, color: req.body.color }
+  const bet = { username: user.username, _id: user._id, betAmount: req.body.betAmount, color: req.body.color }
 
-  if (req.body.color === "red") {
-    var foundBet = redBets.find(bet => bet.username === bet.username)
-
-    if (foundBet) {
-      foundBet.betAmount += bet.betAmount
-      redBets.sort((a, b) => b.betAmount - a.betAmount)
-      io.emit("currentRedBets", redBets)
-    } else {
-      redBets.push(bet)
-      redBets.sort((a, b) => b.betAmount - a.betAmount)
-      io.emit("currentRedBets", redBets)
-    }
+  const color = req.body.color;
+  let currentBets;
+  if (color === "red") {
+    currentBets = redBets;
+  } else if (color === "black") {
+    currentBets = blackBets;
+  } else if (color === "green") {
+    currentBets = greenBets;
   }
-  if (req.body.color === "black") {
-    var foundBet = blackBets.find(bet => bet.username === bet.username)
 
-    if (foundBet) {
-      foundBet.betAmount += bet.betAmount
-      blackBets.sort((a, b) => b.betAmount - a.betAmount)
-      io.emit("currentBlackBets", blackBets)
-    } else {
-      blackBets.push(bet)
-      blackBets.sort((a, b) => b.betAmount - a.betAmount)
-      io.emit("currentBlackBets", blackBets)
-    }
+  const foundBet = currentBets.find((currentBet) => currentBet.username === bet.username);
+  if (foundBet) {
+    foundBet.betAmount += bet.betAmount;
+  } else {
+    currentBets.push(bet);
   }
-  if (req.body.color === "green") {
-    var foundBet = greenBets.find(bet => bet.username === bet.username)
 
-    if (foundBet) {
-      foundBet.betAmount += bet.betAmount
-      greenBets.sort((a, b) => b.betAmount - a.betAmount)
-      io.emit("currentGreenBets", greenBets)
-    } else {
-      greenBets.push(bet)
-      greenBets.sort((a, b) => b.betAmount - a.betAmount)
-      io.emit("currentGreenBets", greenBets)
-    }
-  }
+  currentBets.sort((a, b) => b.betAmount - a.betAmount);
+  io.emit("currentBets", currentBets, color);
 
   res.status(200).json({})
-  console.log(redBets)
 })
 
+function getRollColor(number) {
+  if (number === 0) {
+    return "green"
+  }
+  if (number > 0 && number < 8) {
+    return "red"
+  }
+  if (number > 7 && number < 15) {
+    return "black"
+  }
+}
 
 let randomNumber = 0
 setInterval(async () => {
@@ -194,34 +187,48 @@ setInterval(async () => {
   let bets
   let multiplier
   let loserBets
-  if (randomNumber === 0) {
+
+  const rollColor = getRollColor(randomNumber);
+  if (rollColor === "green") {
     bets = greenBets
     multiplier = 15
-    last100[0] += 1
-  } else {
     loserBets = [...redBets, ...blackBets]
   }
-  if (randomNumber > 0 && randomNumber < 8) {
+  if (rollColor === "red") {
     bets = redBets
     multiplier = 2
-    last100[2] += 1
+    loserBets = [...greenBets, ...blackBets]
   }
-  if (randomNumber > 7 && randomNumber < 15) {
+  if (rollColor === "black") {
     bets = blackBets
     multiplier = 2
-    last100[1] += 1
+    loserBets = [...greenBets, ...redBets]
   }
-  console.log(bets)
+
+  last100[rollColor] += 1
+
+  const amountWon = {}
   for (const object of bets) {
-    let user = await users.findOneAndUpdate({ userID: object._id }, { $inc: { balance: object.betAmount * multiplier } }, { returnDocument: 'after' })
-    user = user.value
-    console.log(user.value, "value error")
-    setTimeout(() => {
-      io.in(user._id.toString()).emit("balance", user.balance)
-      io.in(user._id.toString()).emit("popup", object.betAmount * multiplier)
-   
-    }, 6000);
+    const winningAmount = object.betAmount * multiplier;
+    let user = await users.findOneAndUpdate({ _id: object._id }, { $inc: { balance: winningAmount } }, { returnDocument: 'after' })
+    user = user.value;
+
+    setTimeout(() => io.in(object._id.toString()).emit("balance", user.balance), 6000)
+    amountWon[object._id.toString()] = winningAmount - object.betAmount
   }
+
+  for (const object of loserBets) {
+    const amount = amountWon[object._id.toString()] || 0;
+    amountWon[object._id.toString()] = amount - object.betAmount
+  }
+
+  setTimeout(() => {
+    for (const [_id, amount] of Object.entries(amountWon)) {
+      io.in(_id).emit("popup", Math.abs(amount), amount >= 0)
+    }
+  }, 6000);
+
+
   redBets.length = 0
   greenBets.length = 0
   blackBets.length = 0
@@ -229,15 +236,8 @@ setInterval(async () => {
   betHistory.push(randomNumber)
   if (betHistory.length > 100) {
     console.log(betHistory[0], "firstelem")
-    if (betHistory[0] === 0) {
-      last100[0] -= 1
-    }
-    if (betHistory[0] > 0 && betHistory[0] < 8) {
-      last100[2] -= 1
-    }
-    if (betHistory[0] > 7 && betHistory[0] < 15) {
-      last100[1] -= 1
-    }
+    const rollColor = getRollColor(betHistory[0])
+    last100[rollColor] -= 1
     betHistory.shift()
   }
 
@@ -273,12 +273,14 @@ io.on("connection", async socket => {
 
   socket.emit("betHistory", betHistory.slice(-12))
   socket.emit("last100", last100)
-  socket.emit("currentRedBets", redBets)
-  socket.emit("currentBlackBets", blackBets)
-  socket.emit("currentGreenBets", greenBets)
+  socket.emit("currentBets", redBets, "red")
+  socket.emit("currentBets", blackBets, "black")
+  socket.emit("currentBets", greenBets, "green")
 
 })
 
 httpServer.listen(port, () => {
   console.log(`listening on port ${port}`)
 })
+
+

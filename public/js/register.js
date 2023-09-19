@@ -1,11 +1,11 @@
 
 
 addEventListener("load", () => {
-    document.getElementById("register").addEventListener("submit", (event) => {
+    document.getElementById("register").addEventListener("submit", async (event) => {
         event.preventDefault()
         const data = {};
         new FormData(event.target).forEach((value, key) => data[key] = value);
-        register(data);
+        await register(data);
         window.location = "/main.html"
     })
 })

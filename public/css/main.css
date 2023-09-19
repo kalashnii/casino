@@ -216,17 +216,17 @@ h2 {
   color: white;
 }
 
-/* Style for the green circle */
+
 .green {
   background-color: green;
 }
 
-/* Style for the black circle */
+
 .black {
   background-color: black;
 }
 
-/* Style for the red circle */
+
 .red {
   background-color: red;
 }
@@ -245,29 +245,24 @@ h2 {
   margin: 10px;
   text-align: left;
   border: 2px solid #333;
-  /* Outline around containers */
   border-radius: 8px;
 }
 
 .container1 {
   background-color: #ff3333;
-  /* Red */
   color: #fff;
-  /* White text for better contrast */
+
 }
 
 .container2 {
   background-color: #000;
-  /* Black */
   color: #fff;
-  /* White text for better contrast */
 }
 
 .container3 {
   background-color: #33cc33;
-  /* Green */
   color: #fff;
-  /* White text for better contrast */
+
 }
 
 .container h2 {
@@ -275,7 +270,6 @@ h2 {
   margin: 0;
   padding-bottom: 10px;
   border-bottom: 1px solid #333;
-  /* Horizontal line under the heading */
 }
 
 .container p {
@@ -291,7 +285,6 @@ ul {
 .user-container {
   color: #000;
   background-color: #f2f2f2;
-  /* Background for user entries */
   padding: 5px;
   border-radius: 4px;
   margin-bottom: 5px;

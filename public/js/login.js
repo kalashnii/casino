@@ -1,11 +1,11 @@
 
 
 addEventListener("load", () => {
-    document.getElementById("login").addEventListener("submit", (event) => {
+    document.getElementById("login").addEventListener("submit", async (event) => {
         event.preventDefault()
         const data = {};
         new FormData(event.target).forEach((value, key) => data[key] = value);
-        login(data);
+        await login(data);
         window.location = "/main.html"
     })
 })

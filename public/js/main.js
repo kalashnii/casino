@@ -6,9 +6,7 @@ let remainingTime;
 let remainingStartEpoch;
 let cooldownTime = 10 * 1000;
 const socket = io()
-socket.on("connect", () => {
-  console.log(`u are connected: ${socket.id}`)
-})
+
 addEventListener("load", async () => {
   createWheelElements();
   const user = await getUser();
@@ -34,7 +32,6 @@ addEventListener("load", async () => {
 
     async function placeBet(color) {
       const betAmount = +document.getElementById("bet-amount").value
-      console.log(betAmount)
       if (betAmount > 0) {
         const data = { betAmount: betAmount, color: color }
         await bet(data)
@@ -206,6 +203,7 @@ async function spinWheel(numberToLandOn, remainingTime) {
   })
 }
 
+
 async function getUser() {
   const response = await fetch("/api/v1/users/@me")
   const responseData = await response.json()
@@ -217,7 +215,6 @@ async function getUser() {
 }
 
 socket.on("roll", async (randomNumber) => {
-  console.log(randomNumber)
   disableButtons(true)
   await spinWheel(randomNumber)
   disableButtons(false)
@@ -230,8 +227,7 @@ socket.on("roll", async (randomNumber) => {
   }
 })
 
-socket.on("remainingTime", timeLeft => {
-  console.log(remainingTime, "timeleft")
+socket.on("remainingTime", async timeLeft => {
 
   remainingTime = timeLeft;
   remainingStartEpoch = new Date().getTime();
@@ -239,7 +235,8 @@ socket.on("remainingTime", timeLeft => {
   const lastNumber = 0;
   if (remainingTime > cooldownTime) {
     disableButtons(true)
-    spinWheel(lastNumber, remainingTime - cooldownTime);
+    await spinWheel(lastNumber, remainingTime - cooldownTime);
+    disableButtons(false)
 
   } else {
     disableButtons(false)
@@ -272,10 +269,8 @@ function addBetHistory(rollNumber) {
     historyItem.style.backgroundColor = "#2D3035";
     historyItem.style.paddingLeft = "2px";
   }
-  console.log(rouletteHistory.childElementCount, "jocke")
 
   rouletteHistory.appendChild(historyItem);
-
 }
 
 socket.on("betHistory", bets => {
@@ -288,24 +283,13 @@ socket.on("betHistory", bets => {
 })
 
 socket.on("last100", last100 => {
-  document.getElementById("last-100-green").textContent = `${last100[0]}`
-  document.getElementById("last-100-black").textContent = `${last100[1]}`
-  document.getElementById("last-100-red").textContent = `${last100[2]}`
+  document.getElementById("last-100-green").textContent = `${last100["green"]}`
+  document.getElementById("last-100-black").textContent = `${last100["black"]}`
+  document.getElementById("last-100-red").textContent = `${last100["red"]}`
 })
 
-
-
-socket.on("currentRedBets", currentBets => {
-  addCurrentBets(currentBets, "red")
-
-})
-socket.on("currentBlackBets", currentBets => {
-  addCurrentBets(currentBets, "black")
-
-})
-socket.on("currentGreenBets", currentBets => {
-  addCurrentBets(currentBets, "green")
-
+socket.on("currentBets", (currentBets, color) => {
+  addCurrentBets(currentBets, color)
 })
 
 function disableButtons(boolean) {
@@ -318,7 +302,7 @@ function addCurrentBets(currentBets, color) {
   let totalBetAmount = 0
   let totalBetID
   let totalAmountID
-
+  console.log(currentBets, "asdasd")
   let ul
   if (color === "red") {
     ul = document.getElementById("container1Bets")
@@ -343,7 +327,9 @@ function addCurrentBets(currentBets, color) {
   for (const currentBet of currentBets) {
     totalBetAmount += currentBet.betAmount
     const li = document.createElement("li")
-    li.innerHTML = `<div class="user-container">${currentBet.username} ${currentBet.betAmount}🟡</div>`
+
+    li.innerHTML = `<div class="user-container"> </div>`
+    li.firstChild.textContent = `${currentBet.username} ${currentBet.betAmount}🟡`
     ul.appendChild(li)
   }
   document.getElementById(totalBetID).textContent = `${totalBetAmount} 💰`
@@ -354,7 +340,7 @@ function removeCurrentBets() {
   var ul1 = document.getElementById("container1Bets")
   var ul2 = document.getElementById("container2Bets")
   var ul3 = document.getElementById("container3Bets")
-  
+
   while (ul1.firstChild) {
     ul1.removeChild(ul1.firstChild);
   }
@@ -373,42 +359,34 @@ function removeCurrentBets() {
   document.getElementById("tb3").textContent = `Total Bets 0`
 }
 
-
-
-socket.on("popup", amount => {
-  console.log(amount, "amount won")
-  popup(amount)
+socket.on("popup", (amount, isWinningBet) => {
+  popup(amount, isWinningBet)
 })
 
 
-function popup(amount) {
+function popup(amount, isWinningBet) {
+  let text, color;
+  if (isWinningBet) {
+    text = `You won ${amount} 🔥🔥🔥🔥`
+    color = "#4CAF50"
+  } else {
+    text = `You lost ${amount} ❌❌❌❌`
+    color = "#FF0000"
+  }
+
   const notification = document.getElementById("notification");
-  document.getElementById("popupText").textContent = `You won ${amount} 🔥🔥🔥🔥🔥`
+  document.getElementById("popupText").textContent = text;
+  notification.style.backgroundColor = color;
 
-  // Function to show the popup
   function showPopup() {
-    notification.style.top = "0";
-    setTimeout(hidePopup, 2000); // Automatically hide after 2 seconds
+    notification.style.top = "0"
+    setTimeout(hidePopup, 2000)
   }
 
-  // Function to hide the popup
   function hidePopup() {
-    notification.style.top = "-80px"; // Move it off-screen again
+    notification.style.top = "-80px"
   }
 
-  // Call the showPopup function to display the notification
-  showPopup();
+
+  showPopup()
 }
-
-
-// addRollButton.addEventListener('click', () => {
-//     const rollNumber = Math.floor(Math.random() * 37); // Assuming 37 possible outcomes in roulette
-//     const historyItem = document.createElement('div');
-//     historyItem.classList.add('history-item');
-//     historyItem.textContent = `${rollNumber}`;
-//     rouletteHistory.appendChild(historyItem);
-
-//     // Scroll to the newly added item
-//     rouletteHistory.scrollLeft = rouletteHistory.scrollWidth - rouletteHistory.clientWidth;
-// });
-
