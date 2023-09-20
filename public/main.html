@@ -10,7 +10,7 @@
     <script src="js/main.js"></script>
     <title>2D Roulette Wheel</title>
   </head>
-  <body>
+  <body style="opacity: 0;">
     <nav style="position: relative;" id="navbar"> 
       <ul class="nav-links">
         <li id="navMain"><a href="main.html">Home</a></li>
@@ -19,8 +19,8 @@
       </ul>
       <hr id="userInfoSplitter">
       <div class="user-info" id="userInfo">
-        <span class="username" id="username">Username</span>
-        <span class="balance" id="balance">$100.00</span>
+        <span class="username" id="username"></span>
+        <span class="balance" id="balance"></span>
       </div>
     </nav>
     
@@ -32,12 +32,8 @@
     <div class="container-and-last">
       <div class="scroll-container">
         <div class="roulette-history" id="rouletteHistory">
-            <!-- History items will be appended here -->
-          
-            
+          <!-- History items will be appended here -->
         </div>
-        
-        
       </div>
       
       <div class="last-100">
@@ -52,10 +48,7 @@
             <p id="last-100-red">33</p>
           </div>  
       </div>
-
     </div>
-
-
 
     <div class="bet-input">
       <input id="bet-amount" type="number" placeholder="Enter your bet amount">
@@ -72,48 +65,38 @@
       <button class="bet-button" id="bet-green">Bet Green</button>
     </div>
 
-
-   <div class="container-wrapper">
-        <div class="container container1">
-            <h2>Red bets</h2>
-            <div class="total-container total1">
-              <div id="tb1" class="total-bets"></div>
-              <div id="ta1" class="total-amount"></div>
-          </div>
-            <ul id="container1Bets">
-
-            </ul>
+    <div class="container-wrapper">
+      <div class="container container1">
+        <h2>Red bets</h2>
+        <div class="total-container total1">
+          <div id="tb1" class="total-bets"></div>
+          <div id="ta1" class="total-amount"></div>
         </div>
+        <ul id="container1Bets"></ul>
+      </div>
 
-        <div class="container container2">
-            <h2>Black bets</h2>
-            <div class="total-container">
-              <div  id="tb2" class="total-bets"></div>
-              <div  id="ta2" class="total-amount"></div>
-          </div>
-            <ul id="container2Bets">
-                
-            </ul>
+      <div class="container container2">
+        <h2>Black bets</h2>
+        <div class="total-container">
+          <div id="tb2" class="total-bets"></div>
+          <div id="ta2" class="total-amount"></div>
         </div>
+        <ul id="container2Bets"></ul>
+      </div>
 
-        <div class="container container3">
-            <h2>Green bets</h2>
-            <div class="total-container">
-              <div id="tb3" class="total-bets"></div>
-              <div id="ta3" class="total-amount"></div>
-          </div>
-            <ul id="container3Bets">
-
-            </ul>
+      <div class="container container3">
+        <h2>Green bets</h2>
+        <div class="total-container">
+          <div id="tb3" class="total-bets"></div>
+          <div id="ta3" class="total-amount"></div>
         </div>
+        <ul id="container3Bets"></ul>
+      </div>
     </div>
 
     <div class="popup" id="notification">
       <div id="popupText" ></div>
-  </div>
-
-
+    </div>
 
   </body>
 </html>
-

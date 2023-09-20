@@ -108,7 +108,8 @@ addEventListener("load", async () => {
 
   const timer = setInterval(updateTimer, timerIntervalMs);
 
-
+  document.body.style.transition = "opacity 0.5s";
+  document.body.style.opacity = "1";
 });
 
 function rotate(array, count) {
@@ -227,12 +228,11 @@ socket.on("roll", async (randomNumber) => {
   }
 })
 
-socket.on("remainingTime", async timeLeft => {
+socket.on("remainingTime", async (timeLeft, lastNumber) => {
 
   remainingTime = timeLeft;
   remainingStartEpoch = new Date().getTime();
 
-  const lastNumber = 0;
   if (remainingTime > cooldownTime) {
     disableButtons(true)
     await spinWheel(lastNumber, remainingTime - cooldownTime);
